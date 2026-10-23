@@ -1,0 +1,40 @@
+name: iOS Derleme
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Proje dosyalarını aç
+        run: unzip -o proje.zip
+
+      - name: XcodeGen kur ve projeyi üret
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Simülatör için derle
+        run: |
+          xcodebuild \
+            -project SarkoyMobil.xcodeproj \
+            -scheme SarkoyMobil \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -derivedDataPath build \
+            SARKOY_API_URL="${{ vars.SARKOY_API_URL || 'http://localhost:51326' }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Uygulamayı paketle
+        run: |
+          cd build/Build/Products/Debug-iphonesimulator
+          zip -r "$GITHUB_WORKSPACE/SarkoyMobil-Simulator.zip" SarkoyMobil.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SarkoyMobil-Simulator
+          path: SarkoyMobil-Simulator.zip
